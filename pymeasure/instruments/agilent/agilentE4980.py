@@ -22,14 +22,13 @@
 # THE SOFTWARE.
 #
 
-
 from pymeasure.instruments import Instrument
 from pymeasure.instruments.validators import strict_discrete_set, strict_range
 from pyvisa.errors import VisaIOError
 
 
 class AgilentE4980(Instrument):
-    """Represents LCR meter E4980A/AL"""
+    """Represents LCR meter E4980A/AL from Agilent and (later rebranded) Keysight Technologies."""
 
     ac_voltage = Instrument.control(":VOLT:LEV?", ":VOLT:LEV %g",
                                     "AC voltage level, in Volts",
@@ -46,57 +45,78 @@ class AgilentE4980(Instrument):
                                    validator=strict_range,
                                    values=[20, 2e6])
 
+    #aperture = Instrument.control(":APER?", ":APER %g, %g", validator)
+
     # FETCH? returns [A,B,state]: impedance returns only A,B
-    impedance = Instrument.measurement(
-        ":FETCH?",
-        "Measured data A and B, according to :attr:`~.AgilentE4980.mode`",
-        get_process=lambda x: x[:2])
+    impedance = Instrument.measurement(":FETCH?", "Measured data A and B, according to :attr:`~.AgilentE4980.mode`", get_process=lambda x: x[:2])
+
+    impedance_corrected = Instrument.measurement(":FETCH:CORR?", "Measured data A and B, according to :attr:`~.AgilentE4980.mode` and after correction", get_process=lambda x: x[:2])
+
+    impedance_range = Instrument.control(":FUNC:IMP:RANG?",             ":FUNC:IMP:RANG %g",
+        """
+        Selects the impedance measurement range. This command turns the auto range function OFF. In Ohms, 100m|1|10|100|300|1k|3k|10k|30k|100k
+        """,
+        validator=strict_discrete_set,
+        values=['100m', '1', '10', '100', '300', '1k', '3k', '10k', '30k', '100k'])
+
+    impedance_autorange = Instrument.control(":FUNC:IMP:RANG:AUTO?",
+                                            ":FUNC:IMP:RANG:AUTO %g",
+                                            "Enables autorange for impedance measurements.", validator=strict_discrete_set, values=["ON", "OFF", 1, 0])
 
     mode = Instrument.control("FUNCtion:IMPedance:TYPE?", "FUNCtion:IMPedance:TYPE %s",
-                              """
-Select quantities to be measured:
+        """
+        Select quantities to be measured:
 
-    * CPD: Parallel capacitance [F] and dissipation factor [number]
-    * CPQ: Parallel capacitance [F] and quality factor [number]
-    * CPG: Parallel capacitance [F] and parallel conductance [S]
-    * CPRP: Parallel capacitance [F] and parallel resistance [Ohm]
+            * CPD: Parallel capacitance [F] and dissipation factor [number]
+            * CPQ: Parallel capacitance [F] and quality factor [number]
+            * CPG: Parallel capacitance [F] and parallel conductance [S]
+            * CPRP: Parallel capacitance [F] and parallel resistance [Ohm]
 
-    * CSD: Series capacitance [F] and dissipation factor [number]
-    * CSQ: Series capacitance [F] and quality factor [number]
-    * CSRS: Series capacitance [F] and series resistance [Ohm]
+            * CSD: Series capacitance [F] and dissipation factor [number]
+            * CSQ: Series capacitance [F] and quality factor [number]
+            * CSRS: Series capacitance [F] and series resistance [Ohm]
 
-   * LPD: Parallel inductance [H] and dissipation factor [number]
-   * LPQ: Parallel inductance [H] and quality factor [number]
-   * LPG: Parallel inductance [H] and parallel conductance [S]
-   * LPRP: Parallel inductance [H] and parallel resistance [Ohm]
+            * LPD: Parallel inductance [H] and dissipation factor [number]
+            * LPQ: Parallel inductance [H] and quality factor [number]
+            * LPG: Parallel inductance [H] and parallel conductance [S]
+            * LPRP: Parallel inductance [H] and parallel resistance [Ohm]
 
-    * LSD: Series inductance [H] and dissipation factor [number]
-    * LSQ: Seriesinductance [H] and quality factor [number]
-    * LSRS: Series inductance [H] and series resistance [Ohm]
+            * LSD: Series inductance [H] and dissipation factor [number]
+            * LSQ: Seriesinductance [H] and quality factor [number]
+            * LSRS: Series inductance [H] and series resistance [Ohm]
 
-    * RX: Resitance [Ohm] and reactance [Ohm]
-    * ZTD: Impedance, magnitude [Ohm] and phase [deg]
-    * ZTR: Impedance, magnitude [Ohm] and phase [rad]
-    * GB: Conductance [S] and susceptance [S]
-    * YTD: Admittance, magnitude [Ohm] and phase [deg]
-    * YTR: Admittance magnitude [Ohm] and phase [rad]
-""",
-                              validator=strict_discrete_set,
-                              values=["CPD", "CPQ", "CPG", "CPRP",
-                                      "CSD", "CSQ", "CSRS",
-                                      "LPD", "LPQ", "LPG", "LPRP",
-                                      "LSD", "LSQ", "LSRS",
-                                      "RX", "ZTD", "ZTR", "GB", "YTD", "YTR", ])
+            * RX: Resitance [Ohm] and reactance [Ohm]
+            * ZTD: Impedance, magnitude [Ohm] and phase [deg]
+            * ZTR: Impedance, magnitude [Ohm] and phase [rad]
+            * GB: Conductance [S] and susceptance [S]
+            * YTD: Admittance, magnitude [Ohm] and phase [deg]
+            * YTR: Admittance magnitude [Ohm] and phase [rad]
+            """,
+            validator=strict_discrete_set,
+            values=["CPD", "CPQ", "CPG", "CPRP", "CSD", "CSQ", "CSRS", "LPD", "LPQ", "LPG", "LPRP", "LSD", "LSQ", "LSRS", "RX", "ZTD", "ZTR", "GB", "YTD", "YTR"])
 
     trigger_source = Instrument.control("TRIG:SOUR?", "TRIG:SOUR %s",
-                                        """
-Select trigger source; accept the values:
-    * HOLD: manual
-    * INT: internal
-    * BUS: external bus (GPIB/LAN/USB)
-    * EXT: external connector""",
-                                        validator=strict_discrete_set,
-                                        values=["HOLD", "INT", "BUS", "EXT"])
+        """
+        Select trigger source; accept the values:
+            * HOLD: manual
+            * INT: internal
+            * BUS: external bus (GPIB/LAN/USB)
+            * EXT: external connector
+        """,
+        validator=strict_discrete_set,
+        values=["HOLD", "INT", "BUS", "EXT"])
+
+
+    amplitude = Instrument.control("AMP:ALC?", ":AMP:ALC %g",
+        """
+        Enable or disable Automatic Level Control (ALC):
+            * ON or 1: turn on
+            * OFF or 0: turn off
+        """,
+        validator=strict_discrete_set,
+        values=["ON", "OFF", 1, 0])
+
+    # TODO: implement properties for corrections.
 
     def __init__(self, adapter, **kwargs):
         super().__init__(
