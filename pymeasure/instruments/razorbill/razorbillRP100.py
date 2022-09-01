@@ -60,12 +60,12 @@ class razorbillRP100(Instrument):
     voltage_1 = Instrument.control("SOUR1:VOLT?", "SOUR1:VOLT %g",
                                    """Sets or queries the output voltage of channel 1""",
                                    validator=strict_range,
-                                   values=[-MIN_VOLTAGE, MAX_VOLTAGE])
+                                   values=[MIN_VOLTAGE, MAX_VOLTAGE])
 
     voltage_2 = Instrument.control("SOUR2:VOLT?", "SOUR2:VOLT %g",
                                    """Sets or queries the output voltage of channel 2""",
                                    validator=strict_range,
-                                   values=[-MIN_VOLTAGE, MAX_VOLTAGE])
+                                   values=[MIN_VOLTAGE, MAX_VOLTAGE])
 
     slew_rate_1 = Instrument.control(
         "SOUR1:VOLT:SLEW?", "SOUR1:VOLT:SLEW %g",
