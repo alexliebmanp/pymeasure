@@ -42,8 +42,8 @@ class razorbillRP100(Instrument):
     """
 
     # set software limits - system will throw an error if these limits are exceeded.
-    MAX_VOLTAGE = 120 # 230
-    MIN_VOLTAGE = -20 # -230
+    MAX_VOLTAGE = 200 # 230
+    MIN_VOLTAGE = -200 # -230
 
     output_1 = Instrument.control("OUTP1?", "OUTP1 %d",
                                   """Turns output of channel 1 on or off""",
